@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イベント入場受付 | Scanner</title>
+    <!-- マテリアルデザインアイコン -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- フォント: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- QRコード読み取りライブラリ -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- 暗号復号ライブラリ (GASと同じ v3.1.2) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a73e8; /* Google Blue */
+            --primary-dark: #1557b0;
+            --background-color: #f5f5f5;
+            --surface-color: #ffffff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --success-color: #1e8e3e;
+            --error-color: #d93025;
+            --shadow-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            --shadow-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* AppBar */
+        header {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 16px;
+            box-shadow: var(--shadow-1);
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Main Content */
+        main {
+            margin-top: 80px; /* Header height + space */
+            width: 100%;
+            max-width: 480px;
+            padding: 16px;
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        /* Card Style */
+        .card {
+            background: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-1);
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            transition: box-shadow 0.3s ease;
+        }
+
+        /* Camera Area */
+        #reader {
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #000;
+            min-height: 300px;
+        }
+        
+        .instruction {
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Result Area */
+        #result-area {
+            display: none;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 8px;
+        }
+        
+        .result-success {
+            border-left: 6px solid var(--success-color);
+        }
+        .result-success .status-icon {
+            color: var(--success-color);
+        }
+
+        .result-error {
+            border-left: 6px solid var(--error-color);
+        }
+        .result-error .status-icon {
+            color: var(--error-color);
+        }
+
+        .venue-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 8px 0;
+            display: block;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin: 8px 0;
+        }
+
+        .meta-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 16px;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+
+        /* Button */
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+            box-shadow: var(--shadow-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .btn:active {
+            background-color: var(--primary-dark);
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Footer */
+        footer {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1><span class="material-icons">qr_code_scanner</span> 入場受付スキャナー</h1>
+</header>
+
+<main>
+    <!-- スキャン待機画面 -->
+    <div id="scan-screen" class="card">
+        <div id="reader"></div>
+        <p class="instruction">QRコードを枠内に合わせてください</p>
+    </div>
+
+    <!-- 結果表示画面 -->
+    <div id="result-area" class="card">
+        <!-- JSで内容を書き換えます -->
+    </div>
+</main>
+
+<footer>
+    &copy; 2026 Event Management System
+</footer>
+
+<script>
+    // ★重要：GAS側の SECRET_KEY と完全に一致させる
+    const SECRET_KEY = 'MY_SECRET_EVENT_KEY_2026';
+    
+    let html5QrcodeScanner;
+    let isScanning = true;
+
+    // スキャナーの初期化と起動
+    function startScanner() {
+        document.getElementById('scan-screen').style.display = 'block';
+        document.getElementById('result-area').style.display = 'none';
+        
+        if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", 
+                { fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0 },
+                false
+            );
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        } else {
+            // 再開処理（ライブラリの仕様に合わせてリロードまたは状態リセット）
+             html5QrcodeScanner.resume();
+        }
+        isScanning = true;
+    }
+
+    // QR読み取り成功時の処理
+    function onScanSuccess(decodedText, decodedResult) {
+        if (!isScanning) return;
+        isScanning = false;
+        
+        // スキャン停止（一時停止）
+        html5QrcodeScanner.pause();
+        
+        processTicket(decodedText);
+    }
+
+    function onScanFailure(error) {
+        // スキャン中のノイズ等は無視
+    }
+
+    // チケットデータの検証と表示
+    function processTicket(encryptedText) {
+        const resultArea = document.getElementById('result-area');
+        const scanScreen = document.getElementById('scan-screen');
+        
+        scanScreen.style.display = 'none';
+        resultArea.style.display = 'block';
+
+        try {
+            // 1. 復号処理 (AES)
+            const bytes = CryptoJS.AES.decrypt(encryptedText, SECRET_KEY);
+            const originalText = bytes.toString(CryptoJS.enc.Utf8);
+
+            if (!originalText) {
+                throw new Error("Invalid Key");
+            }
+
+            // 2. データパース
+            const data = JSON.parse(originalText);
+            
+            // 3. 成功画面の表示
+            showSuccess(data);
+
+        } catch (e) {
+            // 4. 失敗画面の表示
+            console.error(e);
+            showError();
+        }
+    }
+
+    function showSuccess(data) {
+        const resultArea = document.getElementById('result-area');
+        const dateStr = new Date(data.t).toLocaleString('ja-JP');
+        
+        resultArea.className = 'card result-success';
+        resultArea.innerHTML = `
+            <span class="material-icons status-icon">check_circle</span>
+            <h2 style="margin:0; color:var(--success-color);">認証成功</h2>
+            <div style="margin: 20px 0;">
+                <span class="venue-name">${sanitize(data.v)} 会場</span>
+                <div class="user-name">${sanitize(data.n)} 様</div>
+            </div>
+            <div class="meta-info">
+                発券日時: ${dateStr}<br>
+                Ticket ID: ${generateShortHash(data.t + data.n)}
+            </div>
+            <button class="btn" onclick="resetApp()">
+                <span class="material-icons">qr_code_scanner</span> 次の人をスキャン
+            </button>
+        `;
+        
+        // 成功音を鳴らすならここ
+        // new Audio('success.mp3').play().catch(e=>{});
+    }
+
+    function showError() {
+        const resultArea = document.getElementById('result-area');
+        
+        resultArea.className = 'card result-error';
+        resultArea.innerHTML = `
+            <span class="material-icons status-icon">error</span>
+            <h2 style="margin:0; color:var(--error-color);">認証失敗</h2>
+            <p style="margin: 16px 0;">
+                QRコードが無効か、<br>読み取りに失敗しました。
+            </p>
+            <button class="btn" onclick="resetApp()" style="background-color: var(--text-secondary);">
+                <span class="material-icons">refresh</span> 再試行
+            </button>
+        `;
+        
+        // エラー音を鳴らすならここ
+    }
+
+    // アプリの状態をリセットしてスキャンに戻る
+    function resetApp() {
+        const resultArea = document.getElementById('result-area');
+        const scanScreen = document.getElementById('scan-screen');
+        
+        resultArea.style.display = 'none';
+        scanScreen.style.display = 'block';
+        
+        isScanning = true;
+        html5QrcodeScanner.resume();
+    }
+
+    // XSS対策
+    function sanitize(str) {
+        if (!str) return "";
+        return str.replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+    
+    // 簡易ID生成（表示用）
+    function generateShortHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash).toString(16).toUpperCase().substring(0, 8);
+    }
+
+    // ページ読み込み時に開始
+    window.onload = function() {
+        // カメラ権限のリクエスト等のためにユーザーアクションを待つ場合はボタンにするが、
+        // 今回は運用ツールなので即時起動を試みる
+        startScanner();
+    };
+
+</script>
+
+</body>
+</html>
