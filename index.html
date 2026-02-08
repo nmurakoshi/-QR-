@@ -25,7 +25,6 @@
             --success-color: #1e8e3e;
             --error-color: #d93025;
             --shadow-1: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-            --shadow-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         body {
@@ -40,65 +39,89 @@
             min-height: 100vh;
         }
 
-        /* AppBar */
+        /* ヘッダー: スマホアプリ風に固定 */
         header {
             width: 100%;
             background-color: var(--primary-color);
             color: white;
-            padding: 16px;
+            padding: 12px 16px;
             box-shadow: var(--shadow-1);
-            position: fixed;
+            position: sticky;
             top: 0;
             z-index: 1000;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
         }
+        
         header h1 {
             margin: 0;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
         }
 
-        /* Main Content */
+        /* カメラ切替ボタン */
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .icon-btn:active {
+            background: rgba(255,255,255,0.4);
+        }
+
+        /* メインコンテンツ */
         main {
-            margin-top: 80px; /* Header height + space */
             width: 100%;
             max-width: 480px;
             padding: 16px;
             box-sizing: border-box;
             flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Card Style */
+        /* カードデザイン */
         .card {
             background: var(--surface-color);
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: var(--shadow-1);
-            padding: 24px;
-            margin-bottom: 24px;
+            padding: 20px;
             text-align: center;
-            transition: box-shadow 0.3s ease;
+            overflow: hidden;
+            position: relative;
         }
 
-        /* Camera Area */
+        /* カメラ表示エリア */
         #reader {
             width: 100%;
-            border-radius: 4px;
+            border-radius: 8px;
             overflow: hidden;
             background: #000;
-            min-height: 300px;
+            /* 読み取りエリアの高さ確保 */
+            min-height: 300px; 
+            position: relative;
         }
         
         .instruction {
-            margin-top: 16px;
+            margin-top: 12px;
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
-        /* Result Area */
+        /* 結果表示エリア */
         #result-area {
             display: none;
             animation: slideUp 0.3s ease-out;
@@ -107,90 +130,66 @@
         .status-icon {
             font-size: 4rem;
             margin-bottom: 8px;
+            display: block;
         }
         
-        .result-success {
-            border-left: 6px solid var(--success-color);
-        }
-        .result-success .status-icon {
-            color: var(--success-color);
-        }
+        .result-success { border-top: 6px solid var(--success-color); }
+        .result-success .status-icon { color: var(--success-color); }
 
-        .result-error {
-            border-left: 6px solid var(--error-color);
-        }
-        .result-error .status-icon {
-            color: var(--error-color);
-        }
+        .result-error { border-top: 6px solid var(--error-color); }
+        .result-error .status-icon { color: var(--error-color); }
 
-        .venue-name {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .venue-badge {
+            display: inline-block;
+            background: #e8f0fe;
             color: var(--primary-color);
-            margin: 8px 0;
-            display: block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
 
         .user-name {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             font-weight: 500;
-            margin: 8px 0;
+            margin: 8px 0 16px 0;
         }
 
         .meta-info {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
             margin-top: 16px;
-            border-top: 1px solid #eee;
-            padding-top: 8px;
+            text-align: left;
         }
 
-        /* Button */
+        /* アクションボタン */
         .btn {
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
+            padding: 14px;
+            border-radius: 24px;
             font-size: 1rem;
             font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
             cursor: pointer;
             width: 100%;
-            margin-top: 16px;
-            box-shadow: var(--shadow-1);
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: background-color 0.2s;
         }
-        .btn:active {
-            background-color: var(--primary-dark);
-        }
-        .btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+        .btn:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
 
-        /* Loading */
-        .loading {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Footer */
         footer {
-            padding: 16px;
+            padding: 20px;
             text-align: center;
             color: var(--text-secondary);
             font-size: 0.75rem;
@@ -200,14 +199,17 @@
 <body>
 
 <header>
-    <h1><span class="material-icons">qr_code_scanner</span> 入場受付スキャナー</h1>
+    <h1><span class="material-icons">qr_code_scanner</span> 入場受付</h1>
+    <button class="icon-btn" onclick="switchCamera()" title="カメラ切り替え">
+        <span class="material-icons">cameraswitch</span>
+    </button>
 </header>
 
 <main>
     <!-- スキャン待機画面 -->
     <div id="scan-screen" class="card">
         <div id="reader"></div>
-        <p class="instruction">QRコードを枠内に合わせてください</p>
+        <p class="instruction" id="status-msg">カメラを起動しています...</p>
     </div>
 
     <!-- 結果表示画面 -->
@@ -224,35 +226,74 @@
     // ★重要：GAS側の SECRET_KEY と完全に一致させる
     const SECRET_KEY = 'MY_SECRET_EVENT_KEY_2026';
     
-    let html5QrcodeScanner;
-    let isScanning = true;
+    let html5QrCode;
+    let isScanning = false;
+    let currentFacingMode = "environment"; // 初期値: 背面カメラ
 
-    // スキャナーの初期化と起動
-    function startScanner() {
-        document.getElementById('scan-screen').style.display = 'block';
-        document.getElementById('result-area').style.display = 'none';
+    // アプリ初期化
+    window.onload = function() {
+        startCameraApp();
+    };
+
+    // カメラのセットアップ
+    function startCameraApp() {
+        html5QrCode = new Html5Qrcode("reader");
+        startScanning(currentFacingMode);
+    }
+
+    // スキャン開始処理 (スマホ向け簡易モード)
+    function startScanning(mode) {
+        document.getElementById('status-msg').innerText = "QRコードを枠内に合わせてください";
         
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", 
-                { fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0 },
-                false
-            );
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-        } else {
-            // 再開処理（ライブラリの仕様に合わせてリロードまたは状態リセット）
-             html5QrcodeScanner.resume();
-        }
-        isScanning = true;
+        // facingModeを指定して起動 (ID指定よりスマホで確実)
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 
+        };
+
+        html5QrCode.start(
+            { facingMode: mode }, 
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            isScanning = true;
+            currentFacingMode = mode;
+        }).catch(err => {
+            console.error("Camera start error:", err);
+            // 背面起動に失敗したら前面でリトライ、またはエラー表示
+            if (mode === "environment") {
+                console.log("背面カメラの起動に失敗。前面カメラを試行します。");
+                startScanning("user");
+            } else {
+                document.getElementById('status-msg').innerText = "カメラの起動に失敗しました。権限を確認してください。";
+            }
+        });
+    }
+
+    // カメラ切り替え (背面 <=> 前面)
+    function switchCamera() {
+        if (!isScanning && document.getElementById('scan-screen').style.display === 'none') return;
+
+        const nextMode = (currentFacingMode === "environment") ? "user" : "environment";
+        
+        html5QrCode.stop().then(() => {
+            startScanning(nextMode);
+        }).catch(err => {
+            console.error("Stop failed", err);
+            // 停止に失敗しても強制的に次を試す
+            startScanning(nextMode);
+        });
     }
 
     // QR読み取り成功時の処理
     function onScanSuccess(decodedText, decodedResult) {
         if (!isScanning) return;
-        isScanning = false;
         
-        // スキャン停止（一時停止）
-        html5QrcodeScanner.pause();
+        // 読み取り成功したら一時停止
+        isScanning = false;
+        html5QrCode.pause();
         
         processTicket(decodedText);
     }
@@ -274,9 +315,7 @@
             const bytes = CryptoJS.AES.decrypt(encryptedText, SECRET_KEY);
             const originalText = bytes.toString(CryptoJS.enc.Utf8);
 
-            if (!originalText) {
-                throw new Error("Invalid Key");
-            }
+            if (!originalText) throw new Error("Invalid Key");
 
             // 2. データパース
             const data = JSON.parse(originalText);
@@ -298,22 +337,20 @@
         resultArea.className = 'card result-success';
         resultArea.innerHTML = `
             <span class="material-icons status-icon">check_circle</span>
-            <h2 style="margin:0; color:var(--success-color);">認証成功</h2>
-            <div style="margin: 20px 0;">
-                <span class="venue-name">${sanitize(data.v)} 会場</span>
-                <div class="user-name">${sanitize(data.n)} 様</div>
-            </div>
+            <h2 style="margin:0 0 16px 0; color:var(--success-color);">認証成功</h2>
+            
+            <div class="venue-badge">${sanitize(data.v)} 会場</div>
+            <div class="user-name">${sanitize(data.n)} 様</div>
+            
             <div class="meta-info">
-                発券日時: ${dateStr}<br>
-                Ticket ID: ${generateShortHash(data.t + data.n)}
+                <div><strong>Ticket ID:</strong> ${generateShortHash(data.t + data.n)}</div>
+                <div style="margin-top:4px;"><strong>発券:</strong> ${dateStr}</div>
             </div>
+
             <button class="btn" onclick="resetApp()">
                 <span class="material-icons">qr_code_scanner</span> 次の人をスキャン
             </button>
         `;
-        
-        // 成功音を鳴らすならここ
-        // new Audio('success.mp3').play().catch(e=>{});
     }
 
     function showError() {
@@ -322,16 +359,14 @@
         resultArea.className = 'card result-error';
         resultArea.innerHTML = `
             <span class="material-icons status-icon">error</span>
-            <h2 style="margin:0; color:var(--error-color);">認証失敗</h2>
-            <p style="margin: 16px 0;">
-                QRコードが無効か、<br>読み取りに失敗しました。
+            <h2 style="margin:0 0 16px 0; color:var(--error-color);">認証失敗</h2>
+            <p style="margin: 16px 0; color: var(--text-secondary);">
+                QRコードを認識できませんでした。<br>正しいイベント入場証か確認してください。
             </p>
             <button class="btn" onclick="resetApp()" style="background-color: var(--text-secondary);">
-                <span class="material-icons">refresh</span> 再試行
+                <span class="material-icons">refresh</span> もう一度読み取る
             </button>
         `;
-        
-        // エラー音を鳴らすならここ
     }
 
     // アプリの状態をリセットしてスキャンに戻る
@@ -343,7 +378,7 @@
         scanScreen.style.display = 'block';
         
         isScanning = true;
-        html5QrcodeScanner.resume();
+        html5QrCode.resume();
     }
 
     // XSS対策
@@ -364,14 +399,6 @@
         }
         return Math.abs(hash).toString(16).toUpperCase().substring(0, 8);
     }
-
-    // ページ読み込み時に開始
-    window.onload = function() {
-        // カメラ権限のリクエスト等のためにユーザーアクションを待つ場合はボタンにするが、
-        // 今回は運用ツールなので即時起動を試みる
-        startScanner();
-    };
-
 </script>
 
 </body>
