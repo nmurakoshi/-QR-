@@ -79,10 +79,9 @@
             background: rgba(0, 0, 0, 0.05);
             width: 100%;
             text-align: center;
-            padding: 8px 0;
+            padding: 12px 0;
             font-size: 0.9rem;
             color: var(--text-secondary);
-            cursor: pointer; /* クリックできることを示唆 */
         }
         #counter-value {
             font-weight: bold;
@@ -90,6 +89,26 @@
             font-size: 1.2rem;
             margin: 0 4px;
         }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .small-btn {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+        .small-btn:active { background: #e0e0e0; }
 
         main {
             width: 100%;
@@ -211,9 +230,19 @@
     </button>
 </header>
 
-<!-- カウンター表示エリア（クリックでリセットメニュー） -->
-<div id="counter-area" onclick="confirmReset()">
+<!-- カウンター表示エリア -->
+<div id="counter-area">
     本日の来場者数: <span id="counter-value">0</span> 人
+    <div class="action-buttons">
+        <!-- ダウンロードボタンを追加 -->
+        <button class="small-btn" onclick="downloadCSV()">
+            <span class="material-icons" style="font-size:16px;">download</span> リストDL
+        </button>
+        <!-- リセットボタンを独立 -->
+        <button class="small-btn" onclick="confirmReset()">
+            <span class="material-icons" style="font-size:16px;">delete_outline</span> リセット
+        </button>
+    </div>
 </div>
 
 <main>
@@ -254,11 +283,11 @@
 
     // ■■■ カウンター＆履歴管理機能 ■■■
 
-    // 自動リセットチェック（18時間経過でリセット）
+    // 自動リセットチェック（72時間経過でリセット）
     function checkAutoReset() {
         const lastActive = localStorage.getItem(STORAGE_KEY_TIMESTAMP);
         const now = Date.now();
-        const RESET_HOURS = 18; // 18時間以上経過でリセット
+        const RESET_HOURS = 72; // 72時間以上経過でリセット
 
         if (lastActive) {
             const diffHours = (now - parseInt(lastActive)) / (1000 * 60 * 60);
@@ -277,11 +306,17 @@
         return history ? JSON.parse(history) : [];
     }
 
-    // 履歴への追加
-    function addToHistory(ticketId) {
+    // ★修正：履歴への追加（名前や会場データも一緒に保存する）
+    function addToHistory(ticketId, data) {
         const history = getScanHistory();
-        if (!history.includes(ticketId)) {
-            history.push(ticketId);
+        if (!isDuplicate(ticketId)) {
+            // 名前や日時も含めてオブジェクトとして保存
+            history.push({
+                id: ticketId,
+                name: data.n,
+                venue: data.v,
+                scanTime: new Date().toLocaleString('ja-JP')
+            });
             localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
             localStorage.setItem(STORAGE_KEY_TIMESTAMP, Date.now().toString());
             updateCounterDisplay();
@@ -293,7 +328,11 @@
     // 重複チェック
     function isDuplicate(ticketId) {
         const history = getScanHistory();
-        return history.includes(ticketId);
+        return history.some(item => {
+            // 古い仕様（文字列のみ）との互換性を保つ
+            if (typeof item === 'string') return item === ticketId;
+            return item.id === ticketId;
+        });
     }
 
     // カウンター表示更新
@@ -302,13 +341,48 @@
         document.getElementById('counter-value').innerText = count;
     }
 
-    // 手動リセット（カウンター部分クリック時）
+    // 手動リセット
     function confirmReset() {
         if (confirm("【管理者用】\n本日の来場者数カウントをリセットしますか？\n（リハーサル後や、翌日の開始時などに実行してください）")) {
             localStorage.removeItem(STORAGE_KEY_HISTORY);
             updateCounterDisplay();
             alert("リセットしました。0人からスタートします。");
         }
+    }
+
+    // ★追加：CSVダウンロード機能
+    function downloadCSV() {
+        const history = getScanHistory();
+        if (history.length === 0) {
+            alert("スキャンされたデータがありません。");
+            return;
+        }
+
+        // BOMを付与してExcelでの文字化けを防ぐ
+        let csvContent = "\uFEFFスキャン日時,会場,お名前,TicketID\n";
+
+        history.forEach(item => {
+            if (typeof item === 'string') {
+                // 古いデータ形式の場合
+                csvContent += `(過去データ),不明,不明,${item}\n`;
+            } else {
+                // 名前にカンマやダブルクォートが含まれている場合のエスケープ処理
+                const escapedName = item.name.replace(/"/g, '""');
+                csvContent += `"${item.scanTime}","${item.venue}","${escapedName}","${item.id}"\n`;
+            }
+        });
+
+        // CSVファイルとしてダウンロードさせる
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        // 今日の日付をファイル名にする
+        const dateStr = new Date().toISOString().slice(0, 10);
+        link.setAttribute("download", `来場者リスト_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     // ■■■ カメラ＆スキャン機能 ■■■
@@ -372,7 +446,7 @@
             if (isDuplicate(ticketId)) {
                 showDuplicate(data); // 重複時の表示
             } else {
-                addToHistory(ticketId); // 新規ならカウントアップ
+                addToHistory(ticketId, data); // ★修正：data(名前や会場)も渡してカウントアップ
                 showSuccess(data); // 成功時の表示
             }
 
@@ -397,7 +471,6 @@
             </div>
             <button class="btn" onclick="resetApp()"><span class="material-icons">qr_code_scanner</span> 次の人をスキャン</button>
         `;
-        // 成功音を鳴らすならここ
     }
 
     // 重複入場（NG）
@@ -415,7 +488,6 @@
                 <span class="material-icons">refresh</span> 戻る
             </button>
         `;
-        // エラー音を鳴らすならここ
     }
 
     // エラー（NG）
